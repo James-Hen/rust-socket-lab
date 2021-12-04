@@ -8,6 +8,11 @@ pub const AF_INET6: i32 = 10;
 pub const SOCK_STREAM: i32 = 1;
 pub const IPPROTO_TCP: i32 = 6;
 
+// const below are for UDP
+
+pub const SOCK_DGRAM: i32 = 2;
+pub const IPPROTO_UDP: i32 = 0;
+
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub struct sockaddr {
@@ -64,4 +69,10 @@ extern {
     pub fn getpeername(sockfd: i32, peeraddr: *mut sockaddr, addrlen: *mut u32) -> i32;
     pub fn read(fd: i32, buf: *mut std::ffi::c_void, count: usize) -> isize;
     pub fn write(fd: i32, buf: *const std::ffi::c_void, count: usize) -> isize;
+
+    // Functions below are for UDP
+
+    pub fn sendto(sockfd: i32, buf: *const std::ffi::c_void, len: usize, flags: i32, dest_addr: *const sockaddr, addrlen: u32) -> isize;
+    pub fn recvfrom(sockfd: i32, buf: *mut std::ffi::c_void, len: usize, flags: i32, src_addr: *const sockaddr, addrlen: *mut u32) -> isize;
+
 }

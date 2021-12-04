@@ -1,7 +1,7 @@
 # rust-socket-lab
 Lab for XJTU computer networks course using rust and extern libc socket
 
-Using TCP.
+Using UDP.
 
 Currently, by using cargo run, we go to the menu. By printing different numbers, each terminal could be server or client to communicate.
 
