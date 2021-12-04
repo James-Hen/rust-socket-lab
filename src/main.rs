@@ -25,13 +25,14 @@ fn main() {
                 },
                 sin_zero: mem::zeroed()
             };
-
+            println!("Server established");
             let result = bind(socket, &servaddr as *const sockaddr_in as *const sockaddr, mem::size_of_val(&servaddr) as u32);
             if result < 0 {
                 println!("last OS error: {:?}", Error::last_os_error());
                 close(socket);
             }
-
+            println!("Server binded");
+            println!("Server is listening");
             listen(socket, 128);
 
             loop {
@@ -43,6 +44,7 @@ fn main() {
                     println!("last OS error: {:?}", Error::last_os_error());
                     break;
                 }
+                println!("Server connected to client");
 
                 thread::spawn(move || {
                     loop {
@@ -51,10 +53,11 @@ fn main() {
                         if n <= 0 {
                             break;
                         }
-
+                        println!("Server received from client");
                         println!("{:?}", String::from_utf8_lossy(&buf[0..n as usize]));
 
                         let msg = b"Hi, client!";
+                        println!("Server prepared for sending");
                         let n = write(client_socket, msg as *const _ as *const c_void, msg.len());
                         if n <= 0 {
                             break;
@@ -70,7 +73,7 @@ fn main() {
 
     });
 
-    thread::sleep(Duration::from_secs(1));
+    thread::sleep(Duration::from_millis(100));
 
     // client
     unsafe {
@@ -78,6 +81,7 @@ fn main() {
         if socket < 0 {
             panic!("last OS error: {:?}", Error::last_os_error());
         }
+        println!("Client established");
 
         let servaddr = sockaddr_in {
             sin_family: AF_INET as u16,
@@ -93,8 +97,10 @@ fn main() {
             println!("last OS error: {:?}", Error::last_os_error());
             close(socket);
         }
+        println!("Client connected to server");
 
         let msg = b"Hello, server!";
+        println!("Client prepared for sending");
         let n = write(socket, msg as *const _ as *const c_void, msg.len());
         if n <= 0 {
             println!("last OS error: {:?}", Error::last_os_error());
@@ -102,11 +108,12 @@ fn main() {
         }
 
         let mut buf = [0u8; 64];
+        println!("Client prepared for receiving");
         let n = read(socket, &mut buf as *mut _ as *mut c_void, buf.len());
         if n <= 0 {
             println!("last OS error: {:?}", Error::last_os_error());
         }
-
+        println!("Client received from server");
         println!("{:?}", String::from_utf8_lossy(&buf[0..n as usize]));
 
         close(socket);
