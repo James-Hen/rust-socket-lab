@@ -5,11 +5,8 @@ pub const TITLE: &str = r#"
 (____/ \__/  \___)(__\_)(____) (__)
 "#;
 
-pub const GREETING: &str = r#"
---------------------------------------------------------------------
-                    Hi! "#;
-
 pub const MENU_HINT: &str = r#"
+--------------------------------------------------------------------
                     Welcome To Socket!
                     (1) Become server
                     (2) Become client
@@ -17,38 +14,21 @@ pub const MENU_HINT: &str = r#"
 --------------------------------------------------------------------
 Please type in your option:
 "#;
+
 pub const CHOICE_RANGE: std::ops::Range::<u8> = 1..4;
 
-use std::io::{ stdin, stdout, Error, ErrorKind, Result };
-use std::net::Ipv4Addr;
+use std::io::{ stdin, stdout, Write, Error, ErrorKind, Result };
 
-// use rand::{ thread_rng, Rng };
-// use rand::prelude::SliceRandom;
-// pub use crossterm::{
-//     ExecutableCommand, QueueableCommand, Result,
-//     terminal::{Clear, ClearType},
-//     cursor,
-//     style::{Color, Print, ResetColor, SetBackgroundColor, SetForegroundColor},
-// };
 pub enum UsersIdea {
-    servergame,
-    clientgame,
-    exitgame,
+    BecomeServer,
+    BecomeClient,
+    Exit,
 }
 
 pub fn show_main_menu() -> Result<UsersIdea,> {
-    // stdout()
-    //     // .execute(Clear(ClearType::All))?
-    //     // .execute(cursor::MoveTo(0, 0))?
-    //     .execute(Print(TITLE))?
-    //     .execute(Print(GREETING))?
-    //     .execute(Print(&format!("{}", &name)))?
-    //     .execute(Print(MENU_HINT));
-    //     // .execute(cursor::Show).unwrap();
-    println!("Welcome To Socket!");
-    println!("(1) Become server");
-    println!("(2) Become client");
-    println!("(3) Exit");
+    stdout().write(TITLE.as_bytes()).unwrap();
+    stdout().write(MENU_HINT.as_bytes()).unwrap();
+    // read choices
     let mut line = String::new();
     stdin().read_line(&mut line).unwrap();
     let choice = loop {
@@ -64,15 +44,13 @@ pub fn show_main_menu() -> Result<UsersIdea,> {
     };
     match choice {
         1 => {
-            Ok(UsersIdea::servergame)
+            Ok(UsersIdea::BecomeServer)
         },
         2 => {
-            // let addr = input_ip_addr_port();
-            // Ok(UsersIdea::JoinGame(addr))
-            Ok(UsersIdea::clientgame)
+            Ok(UsersIdea::BecomeClient)
         },
         3 => {
-            Ok(UsersIdea::exitgame)
+            Ok(UsersIdea::Exit)
         },
         _ => Err(Error::new(ErrorKind::Other, "Choice out of range")),
     }

@@ -16,7 +16,7 @@ fn main() {
     loop{
         let choice = ui::show_main_menu().unwrap();
         match choice{
-            ui::UsersIdea::servergame => {
+            ui::UsersIdea::BecomeServer => {
                 //server
                 let server_main = thread::spawn(move || {
                     server::start();
@@ -27,15 +27,12 @@ fn main() {
                 server_main.join().unwrap();
             },
     
-            ui::UsersIdea::clientgame => {
+            ui::UsersIdea::BecomeClient => {
                 // client
-                let client_main = thread::spawn(move ||{
-                    client::start();
-                });   
-                client_main.join().unwrap();
+                client::start();
             },
     
-            ui::UsersIdea::exitgame => {
+            ui::UsersIdea::Exit => {
                 break;
             }
         }

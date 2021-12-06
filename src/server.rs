@@ -28,27 +28,18 @@ pub fn start(){
             println!("last OS error: {:?}", Error::last_os_error());
             close(socket);
         }
-        println!("Server binded to 127.0.0.1:8080");
-        // println!("Server is listening");
-        // listen(socket, 128);
+        println!("Server binded to 127.0.0.1:8080, listening");
         
         let server_core = thread::spawn(move ||{
             loop {
                 let mut cliaddr: sockaddr_storage = mem::zeroed();
                 let mut len = mem::size_of_val(&cliaddr) as u32;
     
-                // let client_socket = accept(socket, &mut cliaddr as *mut sockaddr_storage as *mut sockaddr, &mut len);
-                // if client_socket < 0 {
-                //     println!("last OS error: {:?}", Error::last_os_error());
-                //     break;
-                // }
-                // println!("Server connected to client");
-    
                 thread::spawn(move || {
                     loop {
                         let mut buf = [0u8; 64];
-                        // let n = read(client_socket, &mut buf as *mut _ as *mut c_void, buf.len());
-                        let n = recvfrom(socket, &mut buf as *mut _ as *mut c_void, buf.len(), 0i32, &mut cliaddr as *mut sockaddr_storage as *mut sockaddr, &mut len);
+
+                        let n = recvfrom(socket, buf.as_mut_ptr() as *mut c_void, buf.len(), 0i32, &mut cliaddr as *mut sockaddr_storage as *mut sockaddr, &mut len);
                         if n <= 0 {
                             break;
                         }
@@ -66,7 +57,6 @@ pub fn start(){
                         println!("");
                     }
                     
-                    // close(client_socket);
                 });
                 thread::sleep(Duration::from_millis(1000));
             }
