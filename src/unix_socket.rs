@@ -73,6 +73,6 @@ extern {
     // Functions below are for UDP
 
     pub fn sendto(sockfd: i32, buf: *const std::ffi::c_void, len: usize, flags: i32, dest_addr: *const sockaddr, addrlen: u32) -> isize;
-    pub fn recvfrom(sockfd: i32, buf: *mut std::ffi::c_void, len: usize, flags: i32, src_addr: *const sockaddr, addrlen: *mut u32) -> isize;
+    pub fn recvfrom(sockfd: i32, buf: *mut std::ffi::c_void, len: usize, flags: i32, src_addr: *mut sockaddr, addrlen: *mut u32) -> isize;
 
 }
