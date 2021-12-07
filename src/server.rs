@@ -1,14 +1,12 @@
-use crate::unix_socket::*;
+use libc::*;
+
 use std::io::Error;
 use std::mem;
 use std::thread;
 use std::time::Duration;
 
-
 pub fn start(){
     unsafe {
-        // server core
-        // let socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
         let socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
         if socket < 0 {
             panic!("last OS error: {:?}", Error::last_os_error());
@@ -22,8 +20,14 @@ pub fn start(){
             },
             sin_zero: mem::zeroed()
         };
+
         println!("Server established");
-        let result = bind(socket, &servaddr as *const sockaddr_in as *const sockaddr, mem::size_of_val(&servaddr) as u32);
+
+        let result = bind(
+            socket,
+            &servaddr as *const sockaddr_in as *const sockaddr,
+            mem::size_of_val(&servaddr) as u32
+        );
         if result < 0 {
             println!("last OS error: {:?}", Error::last_os_error());
             close(socket);
