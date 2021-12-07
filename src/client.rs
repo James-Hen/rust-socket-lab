@@ -1,8 +1,11 @@
 use libc::*;
-use std::io::Error;
+use std::io::{Error,stdin};
 use std::mem;
 use std::thread;
 use std::time::Duration;
+
+use crate::utils::*;
+use crate::cstr;
 
 pub fn start(){
     unsafe {
@@ -14,7 +17,7 @@ pub fn start(){
 
         let servaddr = sockaddr_in {
             sin_family: AF_INET as u16,
-            sin_port: 8080u16.to_be(),
+            sin_port: 8081u16.to_be(),
             sin_addr: in_addr {
                 s_addr: u32::from_be_bytes([127, 0, 0, 1]).to_be()
             },
@@ -28,23 +31,46 @@ pub fn start(){
         }
         println!("Client connected to server");
 
-        let msg = b"Hello, server!";
+        let msg = "Hello, server!".to_string();
         println!("Client prepared for sending");
-        let n = write(socket, msg as *const _ as *const c_void, msg.len());
-        if n <= 0 {
-            println!("last OS error: {:?}", Error::last_os_error());
-            close(socket);
-        }
+        tcp_send(socket, &msg).unwrap();
         println!("Client sended 'Hello, server!' successfully");
-        let mut buf = [0u8; 64];
+
         println!("Client prepared for receiving");
-        let n = read(socket, &mut buf as *mut _ as *mut c_void, buf.len());
-        if n <= 0 {
-            println!("last OS error: {:?}", Error::last_os_error());
-        }
+        let rmsg = tcp_recv(socket).unwrap();
         println!("Client received from server");
-        println!("{:?}", String::from_utf8_lossy(&buf[0..n as usize]));
+        println!("{:?}", &rmsg);
         println!("");
+
+        let client_core = thread::spawn(move ||{
+            loop{
+                let mut input = String::new();
+                println!("Please input username:");
+                stdin().read_line(&mut input).unwrap();
+                input = input.trim().to_string();
+                tcp_send(socket, &input).unwrap();
+            
+                let rmsg = tcp_recv(socket).unwrap();
+                println!("{:?}", rmsg);
+                if strcmp(cstr!(rmsg), cstr!("User doesn't exist!")) == 0{
+                    continue;
+                }
+
+                stdin().read_line(&mut input).unwrap();
+                input = input.trim().to_string();
+                tcp_send(socket, &input).unwrap();
+
+                let rmsg = tcp_recv(socket).unwrap();
+                println!("{:?}", rmsg);
+                if rmsg=="Success".to_string() {
+                    break;
+                }
+                if rmsg=="You are banned!".to_string() {
+                    break;
+                }
+            }
+        });
+        client_core.join().unwrap();
         close(socket);
     }
 }
