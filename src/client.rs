@@ -17,7 +17,7 @@ pub fn start(){
 
         let servaddr = sockaddr_in {
             sin_family: AF_INET as u16,
-            sin_port: 8081u16.to_be(),
+            sin_port: 8080u16.to_be(),
             sin_addr: in_addr {
                 s_addr: u32::from_be_bytes([127, 0, 0, 1]).to_be()
             },
@@ -51,19 +51,21 @@ pub fn start(){
                 tcp_send(socket, &input).unwrap();
             
                 let rmsg = tcp_recv(socket).unwrap();
-                println!("{:?}", rmsg);
+                println!("{}", rmsg);
                 if strcmp(cstr!(rmsg), cstr!("User doesn't exist!")) == 0{
                     continue;
                 }
 
+                input = String::new();
                 stdin().read_line(&mut input).unwrap();
                 input = input.trim().to_string();
                 tcp_send(socket, &input).unwrap();
 
                 let rmsg = tcp_recv(socket).unwrap();
-                println!("{:?}", rmsg);
+                println!("{}", rmsg);
                 if rmsg=="Success".to_string() {
                     break;
+                    println!("Congratulations! GoodBYE!")
                 }
                 if rmsg=="You are banned!".to_string() {
                     break;

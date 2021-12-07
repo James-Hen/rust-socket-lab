@@ -10,6 +10,9 @@ use crate::utils::*;
 pub fn start(){
     let db = HashMap::from([
         ("zwz".to_string(), "zwzzwzzwz".to_string()),
+        ("ilove".to_string(),"network".to_string()),
+        ("socket".to_string(),"interesting".to_string()),
+        ("rust_string".to_string(),"stupid".to_string()),
     ]);
     unsafe {
         // server core
@@ -20,7 +23,7 @@ pub fn start(){
 
         let servaddr = sockaddr_in {
             sin_family: AF_INET as u16,
-            sin_port: 8081u16.to_be(),
+            sin_port: 8080u16.to_be(),
             sin_addr: in_addr {
                 s_addr: u32::from_be_bytes([127, 0, 0, 1]).to_be()
             },
@@ -32,7 +35,7 @@ pub fn start(){
             println!("last OS error: {:?}", Error::last_os_error());
             close(socket);
         }
-        println!("Server binded to 127.0.0.1:8080");
+        println!("Server binded to 127.0.0.1:8081");
         println!("Server is listening");
         listen(socket, 128);
 
@@ -74,7 +77,6 @@ pub fn start(){
                         },
                     };
                     let rmsg = tcp_recv(client_socket).unwrap();
-                    println!("{} {}", *pwd, rmsg);
                     if rmsg==*pwd{
                         tcp_send(client_socket, &"Success".to_string()).unwrap();
                         break;
