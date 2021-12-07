@@ -16,7 +16,8 @@ pub fn start(){
     ]);
     unsafe {
         // server core
-        let socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        // let socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        let socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
         if socket < 0 {
             panic!("last OS error: {:?}", Error::last_os_error());
         }
@@ -35,65 +36,64 @@ pub fn start(){
             println!("last OS error: {:?}", Error::last_os_error());
             close(socket);
         }
-        println!("Server binded to 127.0.0.1:8081");
-        println!("Server is listening");
-        listen(socket, 128);
+        println!("Server binded to 127.0.0.1:8080");
+        // println!("Server is listening");
+        // listen(socket, 128);
 
         loop {
-            let mut cliaddr: sockaddr_storage = mem::zeroed();
+            let mut cliaddr: sockaddr = mem::zeroed();
             let mut len = mem::size_of_val(&cliaddr) as u32;
 
-            let client_socket = accept(socket, &mut cliaddr as *mut sockaddr_storage as *mut sockaddr, &mut len);
-            if client_socket < 0 {
-                println!("last OS error: {:?}", Error::last_os_error());
-                break;
-            }
-            println!("Server connected to client");
+            // let client_socket = accept(socket, &mut cliaddr as *mut sockaddr_storage as *mut sockaddr, &mut len);
+            // if client_socket < 0 {
+            //     println!("last OS error: {:?}", Error::last_os_error());
+            //     break;
+            // }
+            // println!("Server connected to client");
             let db_clone = db.clone();
             let _handler = thread::spawn(move || {
                 
-                let rmsg = tcp_recv(client_socket).unwrap();
+                let rmsg = udp_recv(socket, cliaddr).unwrap();
                 println!("Server received from client");
                 println!("{:?}", rmsg);
 
                 let msg = "Hi, client!".to_string();
                 println!("Server prepared for sending");
-                tcp_send(client_socket, &msg).unwrap();
+                udp_send(socket, &msg, cliaddr).unwrap();
                 println!("Server sended 'Hi, client!' successfully");
                 println!("");
                 let mut cnt = 0;
                 loop {
-                    let rmsg = tcp_recv(client_socket).unwrap();
+                    let rmsg = udp_recv(socket, cliaddr).unwrap();
                     println!("Someone tries to sign in using {:?}", rmsg);
                     let pwd;
                     match db_clone.get(rmsg.as_str()) {
                         Some(s) => {
-                            tcp_send(client_socket, &"Please input password:".to_string()).unwrap();
+                            udp_send(socket, &"Please input password:".to_string(), cliaddr).unwrap();
                             pwd = s;
                         },
                         None => {
-                            tcp_send(client_socket, &"User doesn't exist!".to_string()).unwrap();
+                            udp_send(socket, &"User doesn't exist!".to_string(), cliaddr).unwrap();
                             continue;
                         },
                     };
-                    let rmsg = tcp_recv(client_socket).unwrap();
+                    let rmsg = udp_recv(socket, cliaddr).unwrap();
                     if rmsg==*pwd{
-                        tcp_send(client_socket, &"Success".to_string()).unwrap();
+                        udp_send(socket, &"Success".to_string(), cliaddr).unwrap();
                         break;
                     }
                     else{
                         if cnt < 3 {
-                            tcp_send(client_socket, &"Failure".to_string()).unwrap();
+                            udp_send(socket, &"Failure".to_string(), cliaddr).unwrap();
                         }
                         else{
-                            tcp_send(client_socket, &"You are banned!".to_string()).unwrap();
+                            udp_send(socket, &"You are banned!".to_string(), cliaddr).unwrap();
                             break;
                         }
                     }     
                     cnt += 1;
                 }
 
-                close(client_socket);
             });
         }
         close(socket);

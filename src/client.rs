@@ -9,7 +9,8 @@ use crate::cstr;
 
 pub fn start(){
     unsafe {
-        let socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        // let socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        let socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
         if socket < 0 {
             panic!("last OS error: {:?}", Error::last_os_error());
         }
@@ -24,20 +25,22 @@ pub fn start(){
             sin_zero: mem::zeroed()
         };
 
-        let result = connect(socket, &servaddr as *const sockaddr_in as *const sockaddr, mem::size_of_val(&servaddr) as u32);
-        if result < 0 {
-            println!("last OS error: {:?}", Error::last_os_error());
-            close(socket);
-        }
-        println!("Client connected to server");
+        let addr = &servaddr as sockaddr_in as sockaddr;
+
+        // let result = connect(socket, &servaddr as *const sockaddr_in as *const sockaddr, mem::size_of_val(&servaddr) as u32);
+        // if result < 0 {
+        //     println!("last OS error: {:?}", Error::last_os_error());
+        //     close(socket);
+        // }
+        // println!("Client connected to server");
 
         let msg = "Hello, server!".to_string();
         println!("Client prepared for sending");
-        tcp_send(socket, &msg).unwrap();
+        udp_send(socket, &msg, addr).unwrap();
         println!("Client sended 'Hello, server!' successfully");
 
         println!("Client prepared for receiving");
-        let rmsg = tcp_recv(socket).unwrap();
+        let rmsg = udp_recv(socket, addr).unwrap();
         println!("Client received from server");
         println!("{:?}", &rmsg);
         println!("");
@@ -48,9 +51,9 @@ pub fn start(){
                 println!("Please input username:");
                 stdin().read_line(&mut input).unwrap();
                 input = input.trim().to_string();
-                tcp_send(socket, &input).unwrap();
+                udp_send(socket, &input, addr).unwrap();
             
-                let rmsg = tcp_recv(socket).unwrap();
+                let rmsg = udp_recv(socket, addr).unwrap();
                 println!("{}", rmsg);
                 if strcmp(cstr!(rmsg), cstr!("User doesn't exist!")) == 0{
                     continue;
@@ -59,9 +62,9 @@ pub fn start(){
                 input = String::new();
                 stdin().read_line(&mut input).unwrap();
                 input = input.trim().to_string();
-                tcp_send(socket, &input).unwrap();
+                udp_send(socket, &input, addr).unwrap();
 
-                let rmsg = tcp_recv(socket).unwrap();
+                let rmsg = udp_recv(socket, addr).unwrap();
                 println!("{}", rmsg);
                 if rmsg=="Success".to_string() {
                     break;
