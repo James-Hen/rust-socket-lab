@@ -26,14 +26,14 @@ pub unsafe fn tcp_send(socket: c_int, msg: &String) -> Option<()> {
     }
 }
 
-pub unsafe fn udp_send(socket: c_int, msg: &String, addr: *const sockaddr) -> Option<()> {
+pub unsafe fn udp_send(socket: c_int, msg: &String, addr: &sockaddr) -> Option<()> {
     let n = sendto(
         socket,
         msg.as_bytes().as_ptr() as *const c_void,
         msg.len(),
         0i32,
-        addr,
-        mem::size_of_val(&addr) as u32);
+        addr as *const sockaddr,
+        mem::size_of_val(addr) as u32);
     if n <= 0 {
         println!("last OS error: {:?}", Error::last_os_error());
         None
@@ -60,21 +60,25 @@ pub unsafe fn tcp_recv(socket: c_int) -> Option<String> {
     }
 }
 
-pub unsafe fn udp_recv(socket: c_int, addr: *mut sockaddr) -> Option<String> {
+pub unsafe fn udp_recv(socket: c_int) -> Option<(String, sockaddr)> {
     let mut buf = [0u8; MAX_BUF];
+    let mut addr: sockaddr = mem::zeroed();
     let mut len = mem::size_of_val(&addr) as u32;
     let n = recvfrom(
         socket,
         buf.as_mut_ptr() as *mut c_void,
         buf.len(),
         0i32,
-        addr,
+        &mut addr as *mut sockaddr,
         &mut len);
     if n <= 0 {
         println!("last OS error: {:?}", Error::last_os_error());
         None
     }
     else {
-        Some(std::str::from_utf8(&buf[..n as usize]).unwrap().to_string())
+        Some((
+            std::str::from_utf8(&buf[..n as usize]).unwrap().to_string(),
+            addr,
+        ))
     }
 }

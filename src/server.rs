@@ -3,10 +3,8 @@ use std::io::Error;
 use std::mem;
 use std::thread;
 use std::collections::HashMap;
-use std::time::Duration;
 
 use crate::utils::*;
-const MAX_BUF: usize = 1460;
 
 pub fn start(){
     let db = HashMap::from([
@@ -14,16 +12,16 @@ pub fn start(){
         ("ilove".to_string(),"network".to_string()),
         ("socket".to_string(),"interesting".to_string()),
         ("rust_string".to_string(),"stupid".to_string()),
+        ("rust_refs_cast".to_string(),"also_stupid".to_string()),
     ]);
     unsafe {
-        // server core
-        // let socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        // server core, Using UDP
         let socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
         if socket < 0 {
             panic!("last OS error: {:?}", Error::last_os_error());
         }
 
-        let servaddr = sockaddr_in {
+        let servaddr_in = sockaddr_in {
             sin_family: AF_INET as u16,
             sin_port: 8080u16.to_be(),
             sin_addr: in_addr {
@@ -31,86 +29,60 @@ pub fn start(){
             },
             sin_zero: mem::zeroed()
         };
+        let servaddr = &servaddr_in as *const sockaddr_in as *const sockaddr;
+
         println!("Server established");
-        let result = bind(socket, &servaddr as *const sockaddr_in as *const sockaddr, mem::size_of_val(&servaddr) as u32);
+        let result = bind(socket, servaddr, mem::size_of::<sockaddr>() as u32);
         if result < 0 {
             println!("last OS error: {:?}", Error::last_os_error());
             close(socket);
         }
         println!("Server binded to 127.0.0.1:8080");
-        // println!("Server is listening");
-        // listen(socket, 128);
 
         loop {
-            let mut cliaddr: sockaddr_storage = mem::zeroed();
-            let mut len = mem::size_of_val(&cliaddr) as u32;
-
-            // let client_socket = accept(socket, &mut cliaddr as *mut sockaddr_storage as *mut sockaddr, &mut len);
-            // if client_socket < 0 {
-            //     println!("last OS error: {:?}", Error::last_os_error());
-            //     break;
-            // }
-            // println!("Server connected to client");
             let db_clone = db.clone();
-            let _handler = thread::spawn(move || {
-                // let mut buf = [0u8; MAX_BUF];
-                // let n = recvfrom(socket, &mut buf as *mut _ as *mut c_void, buf.len(), 0i32, &mut cliaddr as *mut sockaddr_storage as *mut sockaddr, &mut len);
-                // let rmsg = std::str::from_utf8(&buf[..n as usize]).unwrap().to_string();
-                // // let rmsg = udp_recv(socket, *mut cliaddr as *mut sockaddr_storage as *mut sockaddr).unwrap();
-                // println!("Server received from client");
-                // println!("{:?}", rmsg);
-
-                // let msg = "Hi, client!".to_string();
-                // println!("Server prepared for sending");
-                // let n = sendto(socket, msg.as_bytes().as_ptr() as *const c_void, msg.len(), 0i32, &cliaddr as *const sockaddr_storage as *const sockaddr, mem::size_of_val(&cliaddr) as u32);
-                // println!("Server sended 'Hi, client!' successfully");
-                // println!("");
+            let (rmsg, from_addr) = udp_recv(socket).unwrap();
+            println!("Someone tries to sign in using {:?}", rmsg);
+            let handler = thread::spawn(move || {
                 let mut cnt = 0;
-                loop {
-                    let mut buf = [0u8; MAX_BUF];
-                    let n = recvfrom(socket, &mut buf as *mut _ as *mut c_void, buf.len(), 0i32, &mut cliaddr as *mut sockaddr_storage as *mut sockaddr, &mut len);
-                    let rmsg = std::str::from_utf8(&buf[..n as usize]).unwrap().to_string();
-                    // let rmsg = udp_recv(socket, *mut cliaddr as *mut sockaddr_storage as *mut sockaddr).unwrap();
-                    println!("Someone tries to sign in using {:?}", rmsg);
+                let mut success_flag = false;
+                while cnt < 3 {
                     let pwd;
                     match db_clone.get(rmsg.as_str()) {
                         Some(s) => {
                             let msg = "Please input password:".to_string();
-                            let n = sendto(socket, msg.as_bytes().as_ptr() as *const c_void, msg.len(), 0i32, &cliaddr as *const sockaddr_storage as *const sockaddr, mem::size_of_val(&cliaddr) as u32);             
+                            udp_send(socket, &msg, &from_addr).unwrap();           
                             pwd = s;
                         },
                         None => {
                             let msg = "User doesn't exist!".to_string();
-                            let n = sendto(socket, msg.as_bytes().as_ptr() as *const c_void, msg.len(), 0i32, &cliaddr as *const sockaddr_storage as *const sockaddr, mem::size_of_val(&cliaddr) as u32);
-                            continue;
+                            udp_send(socket, &msg, &from_addr).unwrap();
+                            return;
                         },
                     };
-                    let n = recvfrom(socket, &mut buf as *mut _ as *mut c_void, buf.len(), 0i32, &mut cliaddr as *mut sockaddr_storage as *mut sockaddr, &mut len);
-                    let rmsg = std::str::from_utf8(&buf[..n as usize]).unwrap().to_string();
-                    // let rmsg = udp_recv(socket, *mut cliaddr as *mut sockaddr_storage as *mut sockaddr).unwrap();
-                    if rmsg==*pwd{
-                        let msg = "Success".to_string();
-                        let n = sendto(socket, msg.as_bytes().as_ptr() as *const c_void, msg.len(), 0i32, &cliaddr as *const sockaddr_storage as *const sockaddr, mem::size_of_val(&cliaddr) as u32);
+                    let (rmsg, from_addr) = udp_recv(socket).unwrap();
+                    if rmsg == *pwd {
+                        success_flag = true;
                         break;
                     }
-                    else{
-                        if cnt < 3 {
-                            let msg = "Failure".to_string();
-                            let n = sendto(socket, msg.as_bytes().as_ptr() as *const c_void, msg.len(), 0i32, &cliaddr as *const sockaddr_storage as *const sockaddr, mem::size_of_val(&cliaddr) as u32);
-                            }
-                        else{
-                            let msg = "You are banned!".to_string();
-                            let n = sendto(socket, msg.as_bytes().as_ptr() as *const c_void, msg.len(), 0i32, &cliaddr as *const sockaddr_storage as *const sockaddr, mem::size_of_val(&cliaddr) as u32);
-                            break;
-                        }
-                    }     
+                    else {
+                        let msg = "Failure, please retry".to_string();
+                        udp_send(socket, &msg, &from_addr).unwrap();
+                    }
                     cnt += 1;
                 }
-
+                if success_flag {
+                    let msg = "Success".to_string();
+                    udp_send(socket, &msg, &from_addr).unwrap();
+                }
+                else {
+                    let msg = "You are banned!".to_string();
+                    udp_send(socket, &msg, &from_addr).unwrap();
+                }
             });
-            thread::sleep(Duration::from_millis(10000));
+            handler.join().unwrap();
         }
-        close(socket);
-    }
 
+        close(socket);
+    } // unsafe block ends
 }
