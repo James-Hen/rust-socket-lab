@@ -7,13 +7,13 @@ use std::collections::HashMap;
 use crate::utils::*;
 
 pub fn start(){
-    let db = HashMap::from([
+    let db = std::sync::Arc::new(HashMap::from([
         ("zwz".to_string(), "zwzzwzzwz".to_string()),
         ("ilove".to_string(),"network".to_string()),
         ("socket".to_string(),"interesting".to_string()),
         ("rust_string".to_string(),"stupid".to_string()),
         ("rust_refs_cast".to_string(),"also_stupid".to_string()),
-    ]);
+    ]));
     unsafe {
         // server core, Using UDP
         let socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -40,7 +40,7 @@ pub fn start(){
         println!("Server binded to 127.0.0.1:8080");
 
         loop {
-            let db_clone = db.clone();
+            let db_arc = db.clone();
             let (rmsg, from_addr) = udp_recv(socket).unwrap();
             println!("Someone tries to sign in using {:?}", rmsg);
             let handler = thread::spawn(move || {
@@ -48,7 +48,7 @@ pub fn start(){
                 let mut success_flag = false;
                 while cnt < 3 {
                     let pwd;
-                    match db_clone.get(rmsg.as_str()) {
+                    match db_arc.get(rmsg.as_str()) {
                         Some(s) => {
                             let msg = "Please input password:".to_string();
                             udp_send(socket, &msg, &from_addr).unwrap();           
