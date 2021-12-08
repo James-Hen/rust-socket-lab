@@ -3,9 +3,10 @@ use std::io::Error;
 use std::mem;
 use std::thread;
 use std::collections::HashMap;
+use std::time::Duration;
 
 use crate::utils::*;
-
+const MAX_BUF: usize = 1460;
 
 pub fn start(){
     let db = HashMap::from([
@@ -41,7 +42,7 @@ pub fn start(){
         // listen(socket, 128);
 
         loop {
-            let mut cliaddr: sockaddr = mem::zeroed();
+            let mut cliaddr: sockaddr_storage = mem::zeroed();
             let mut len = mem::size_of_val(&cliaddr) as u32;
 
             // let client_socket = accept(socket, &mut cliaddr as *mut sockaddr_storage as *mut sockaddr, &mut len);
@@ -52,42 +53,54 @@ pub fn start(){
             // println!("Server connected to client");
             let db_clone = db.clone();
             let _handler = thread::spawn(move || {
-                
-                let rmsg = udp_recv(socket, cliaddr).unwrap();
-                println!("Server received from client");
-                println!("{:?}", rmsg);
+                // let mut buf = [0u8; MAX_BUF];
+                // let n = recvfrom(socket, &mut buf as *mut _ as *mut c_void, buf.len(), 0i32, &mut cliaddr as *mut sockaddr_storage as *mut sockaddr, &mut len);
+                // let rmsg = std::str::from_utf8(&buf[..n as usize]).unwrap().to_string();
+                // // let rmsg = udp_recv(socket, *mut cliaddr as *mut sockaddr_storage as *mut sockaddr).unwrap();
+                // println!("Server received from client");
+                // println!("{:?}", rmsg);
 
-                let msg = "Hi, client!".to_string();
-                println!("Server prepared for sending");
-                udp_send(socket, &msg, cliaddr).unwrap();
-                println!("Server sended 'Hi, client!' successfully");
-                println!("");
+                // let msg = "Hi, client!".to_string();
+                // println!("Server prepared for sending");
+                // let n = sendto(socket, msg.as_bytes().as_ptr() as *const c_void, msg.len(), 0i32, &cliaddr as *const sockaddr_storage as *const sockaddr, mem::size_of_val(&cliaddr) as u32);
+                // println!("Server sended 'Hi, client!' successfully");
+                // println!("");
                 let mut cnt = 0;
                 loop {
-                    let rmsg = udp_recv(socket, cliaddr).unwrap();
+                    let mut buf = [0u8; MAX_BUF];
+                    let n = recvfrom(socket, &mut buf as *mut _ as *mut c_void, buf.len(), 0i32, &mut cliaddr as *mut sockaddr_storage as *mut sockaddr, &mut len);
+                    let rmsg = std::str::from_utf8(&buf[..n as usize]).unwrap().to_string();
+                    // let rmsg = udp_recv(socket, *mut cliaddr as *mut sockaddr_storage as *mut sockaddr).unwrap();
                     println!("Someone tries to sign in using {:?}", rmsg);
                     let pwd;
                     match db_clone.get(rmsg.as_str()) {
                         Some(s) => {
-                            udp_send(socket, &"Please input password:".to_string(), cliaddr).unwrap();
+                            let msg = "Please input password:".to_string();
+                            let n = sendto(socket, msg.as_bytes().as_ptr() as *const c_void, msg.len(), 0i32, &cliaddr as *const sockaddr_storage as *const sockaddr, mem::size_of_val(&cliaddr) as u32);             
                             pwd = s;
                         },
                         None => {
-                            udp_send(socket, &"User doesn't exist!".to_string(), cliaddr).unwrap();
+                            let msg = "User doesn't exist!".to_string();
+                            let n = sendto(socket, msg.as_bytes().as_ptr() as *const c_void, msg.len(), 0i32, &cliaddr as *const sockaddr_storage as *const sockaddr, mem::size_of_val(&cliaddr) as u32);
                             continue;
                         },
                     };
-                    let rmsg = udp_recv(socket, cliaddr).unwrap();
+                    let n = recvfrom(socket, &mut buf as *mut _ as *mut c_void, buf.len(), 0i32, &mut cliaddr as *mut sockaddr_storage as *mut sockaddr, &mut len);
+                    let rmsg = std::str::from_utf8(&buf[..n as usize]).unwrap().to_string();
+                    // let rmsg = udp_recv(socket, *mut cliaddr as *mut sockaddr_storage as *mut sockaddr).unwrap();
                     if rmsg==*pwd{
-                        udp_send(socket, &"Success".to_string(), cliaddr).unwrap();
+                        let msg = "Success".to_string();
+                        let n = sendto(socket, msg.as_bytes().as_ptr() as *const c_void, msg.len(), 0i32, &cliaddr as *const sockaddr_storage as *const sockaddr, mem::size_of_val(&cliaddr) as u32);
                         break;
                     }
                     else{
                         if cnt < 3 {
-                            udp_send(socket, &"Failure".to_string(), cliaddr).unwrap();
-                        }
+                            let msg = "Failure".to_string();
+                            let n = sendto(socket, msg.as_bytes().as_ptr() as *const c_void, msg.len(), 0i32, &cliaddr as *const sockaddr_storage as *const sockaddr, mem::size_of_val(&cliaddr) as u32);
+                            }
                         else{
-                            udp_send(socket, &"You are banned!".to_string(), cliaddr).unwrap();
+                            let msg = "You are banned!".to_string();
+                            let n = sendto(socket, msg.as_bytes().as_ptr() as *const c_void, msg.len(), 0i32, &cliaddr as *const sockaddr_storage as *const sockaddr, mem::size_of_val(&cliaddr) as u32);
                             break;
                         }
                     }     
@@ -95,6 +108,7 @@ pub fn start(){
                 }
 
             });
+            thread::sleep(Duration::from_millis(100));
         }
         close(socket);
     }
