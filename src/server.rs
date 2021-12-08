@@ -108,7 +108,7 @@ pub fn start(){
                 }
 
             });
-            thread::sleep(Duration::from_millis(100));
+            thread::sleep(Duration::from_millis(10000));
         }
         close(socket);
     }
