@@ -47,6 +47,7 @@ pub fn start(){
                 let mut cnt = 0;
                 let mut success_flag = false;
                 while cnt < 3 {
+                    cnt += 1;
                     let pwd;
                     match db_arc.get(rmsg.as_str()) {
                         Some(s) => {
@@ -65,11 +66,10 @@ pub fn start(){
                         success_flag = true;
                         break;
                     }
-                    else {
+                    else if cnt < 3{
                         let msg = "Failure, please retry".to_string();
                         udp_send(socket, &msg, &from_addr).unwrap();
                     }
-                    cnt += 1;
                 }
                 if success_flag {
                     let msg = "Success".to_string();
